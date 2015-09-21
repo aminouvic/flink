@@ -1,22 +1,20 @@
 /**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 package org.apache.flink.streaming.connectors.fs;
-
 
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -31,24 +29,24 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 
 import java.io.IOException;
+import org.apache.hadoop.fs.Path;
 
 /**
- * A {@link Writer} that writes the bucket files as Hadoop {@link SequenceFile SequenceFiles}.
- * The input to the {@link RollingSink} must
+ * A {@link Writer} that writes the bucket files as Hadoop
+ * {@link SequenceFile SequenceFiles}. The input to the {@link RollingSink} must
  * be a {@link org.apache.flink.api.java.tuple.Tuple2} of two Hadopo
  * {@link org.apache.hadoop.io.Writable Writables}.
  *
  * @param <K> The type of the first tuple field.
  * @param <V> The type of the second tuple field.
  */
-public class SequenceFileWriter<K extends Writable, V extends Writable> implements Writer<Tuple2<K, V>>, InputTypeConfigurable {
+public class SequenceFileWriter<K extends Writable, V extends Writable> extends BaseWriter<Tuple2<K, V>> implements InputTypeConfigurable {
+
 	private static final long serialVersionUID = 1L;
 
 	private final String compressionCodecName;
 
 	private SequenceFile.CompressionType compressionType;
-
-	private transient FSDataOutputStream outputStream;
 
 	private transient SequenceFile.Writer writer;
 
@@ -57,15 +55,16 @@ public class SequenceFileWriter<K extends Writable, V extends Writable> implemen
 	private Class<V> valueClass;
 
 	/**
-	 * Creates a new {@code SequenceFileWriter} that writes sequence files without compression.
+	 * Creates a new {@code SequenceFileWriter} that writes sequence files
+	 * without compression.
 	 */
 	public SequenceFileWriter() {
 		this("None", SequenceFile.CompressionType.NONE);
 	}
 
 	/**
-	 * Creates a new {@code SequenceFileWriter} that writes sequence with the given
-	 * compression codec and compression type.
+	 * Creates a new {@code SequenceFileWriter} that writes sequence with the
+	 * given compression codec and compression type.
 	 *
 	 * @param compressionCodecName Name of a Hadoop Compression Codec.
 	 * @param compressionType The compression type to use.
@@ -77,7 +76,7 @@ public class SequenceFileWriter<K extends Writable, V extends Writable> implemen
 	}
 
 	@Override
-	public void open(FSDataOutputStream outStream) throws IOException {
+	public void open(FSDataOutputStream outStream, Path path, int part) throws IOException {
 		if (outputStream != null) {
 			throw new IllegalStateException("SequenceFileWriter has already been opened.");
 		}
@@ -88,8 +87,9 @@ public class SequenceFileWriter<K extends Writable, V extends Writable> implemen
 			throw new IllegalStateException("Value Class has not been initialized.");
 		}
 
-		this.outputStream = outStream;
+		super.open(outStream, path, part);
 
+		//this.outputStream = outStream;
 		CompressionCodec codec = null;
 
 		if (!compressionCodecName.equals("None")) {
@@ -111,15 +111,17 @@ public class SequenceFileWriter<K extends Writable, V extends Writable> implemen
 
 	@Override
 	public void flush() throws IOException {
+		super.flush();
 	}
 
 	@Override
 	public void close() throws IOException {
+		super.close();
+
 		if (writer != null) {
 			writer.close();
 		}
 		writer = null;
-		outputStream = null;
 	}
 
 	@Override
