@@ -116,13 +116,16 @@ public class SequenceFileWriter<K extends Writable, V extends Writable> extends 
 
 	@Override
 	public void close() throws IOException {
-		super.close();
-
+		//Close the sequence writer properly
 		if (writer != null) {
 			writer.close();
 		}
 		writer = null;
+		
+		//we must call BaseWriter.close after closing the sequence file writer
+		super.close();
 	}
+
 
 	@Override
 	public void write(Tuple2<K, V> element) throws IOException {
