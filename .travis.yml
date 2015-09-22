@@ -72,7 +72,7 @@ before_script:
 
 # We run mvn and monitor its output. If there is no output for the specified number of seconds, we
 # print the stack traces of all running Java processes.
-script: "./tools/travis_mvn_watchdog.sh 300"
+script: "./tools/travis_mvn_watchdog.sh 600"
 
 # deploy if the first job is successful; should be replaced by an after_all_success if travis finally supports it
 after_success:
