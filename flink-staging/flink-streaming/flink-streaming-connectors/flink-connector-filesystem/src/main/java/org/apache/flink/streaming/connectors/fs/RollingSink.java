@@ -453,14 +453,14 @@ public class RollingSink<T> extends RichSinkFunction<T> implements InputTypeConf
 	private Writer getWriter(T value) throws Exception {
 		Writer writer = null;
 		Path newPathDirectory = bucketer.getBucketPath(new Path(basePath), value);
-		synchronized (this) {
-			writer = writers.getIfPresent(newPathDirectory);
-			if (shouldRoll(writer)) {
-				writer = openNewPartFile(writer, newPathDirectory);
-			} else {
-				// nothing return the current writer
-			}
+
+		writer = writers.getIfPresent(newPathDirectory);
+		if (shouldRoll(writer)) {
+			writer = openNewPartFile(writer, newPathDirectory);
+		} else {
+			// nothing return the current writer
 		}
+
 		return writer;
 	}
 
@@ -474,7 +474,7 @@ public class RollingSink<T> extends RichSinkFunction<T> implements InputTypeConf
 	 */
 	private boolean shouldRoll(Writer writer) {
 		boolean shouldRoll = false;
-		if (writers.size() == 0) {
+		if (writer == null) {
 			shouldRoll = true;
 			LOG.debug("RollingSink {} starting new initial bucket. ", subtaskIndex);
 		} else {
@@ -683,6 +683,10 @@ public class RollingSink<T> extends RichSinkFunction<T> implements InputTypeConf
 	@Override
 	public BucketState snapshotState(long checkpointId, long checkpointTimestamp) throws Exception {
 
+		//must clean currentFilesList here
+		bucketState.currentFiles.clear();
+
+		//flush each writer and add the file to current file list
 		for (Writer w : writers.asMap().values()) {
 			w.flush();
 
@@ -693,11 +697,10 @@ public class RollingSink<T> extends RichSinkFunction<T> implements InputTypeConf
 				bucketState.currentFiles.put(currentfile, validlength);
 			}
 		}
-
 		synchronized (bucketState.pendingFilesPerCheckpoint) {
 			bucketState.pendingFilesPerCheckpoint.put(checkpointId, bucketState.pendingFiles);
+			bucketState.pendingFiles = Lists.newArrayList();
 		}
-		bucketState.pendingFiles = Lists.newArrayList();
 		return bucketState;
 	}
 
@@ -708,6 +711,10 @@ public class RollingSink<T> extends RichSinkFunction<T> implements InputTypeConf
 		// after this checkpoint was successfull
 		bucketState.pendingFiles.clear();
 		FileSystem fs = null;
+
+		if (fsConf == null) {
+			fsConf = new org.apache.hadoop.conf.Configuration();
+		}
 
 		try {
 			fs = new Path(basePath).getFileSystem(fsConf);
@@ -724,7 +731,7 @@ public class RollingSink<T> extends RichSinkFunction<T> implements InputTypeConf
 
 				long currentFileValidLength = bucketState.currentFiles.get(currentFile);
 
-				// We were writing to a file when the last checkpoint occured. This file can either
+					// We were writing to a file when the last checkpoint occured. This file can either
 				// be still in-progress or became a pending file at some point after the checkpoint.
 				// Either way, we have to truncate it back to a valid state (or write a .valid-length)
 				// file that specifies up to which length it is valid and rename it to the final name
