@@ -310,7 +310,11 @@ public class RollingSink<T> extends RichSinkFunction<T> implements InputTypeConf
 	 */
 	public RollingSink(String basePath, Bucketer bucketer, org.apache.hadoop.conf.Configuration conf) {
 		this.basePath = basePath;
-		this.bucketer = bucketer;
+		if (bucketer != null) {
+			this.bucketer = bucketer;
+		} else {
+			this.bucketer = new NonRollingBucketer();
+		}
 		this.batchSize = DEFAULT_BATCH_SIZE;
 		this.idleTimeOut = DEFAULT_IDLE_FILE_TIMEOUT;
 		this.maxOpenFiles = DEFAULT_MAX_OPEN_FILES;
@@ -337,7 +341,7 @@ public class RollingSink<T> extends RichSinkFunction<T> implements InputTypeConf
 	 * @param basePath path to write to
 	 */
 	public RollingSink(String basePath) {
-		this(basePath, new NonRollingBucketer(), null);
+		this(basePath, null, null);
 	}
 
 	@Override
